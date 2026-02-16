@@ -156,8 +156,11 @@ router.post('/suggest', (req, res) => {
             return res.status(400).json({ error: 'Description is too long. Please keep it under 1000 characters.' });
         }
 
+        // SECURITY: Strip any HTML/script tags from user input
+        const sanitizedDescription = description.replace(/<[^>]*>/g, '').trim();
+
         // Simulate AI processing delay
-        const result = analyzeIntent(description);
+        const result = analyzeIntent(sanitizedDescription);
 
         res.json(result);
     } catch (error) {

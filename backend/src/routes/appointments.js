@@ -4,6 +4,15 @@ const { getDbSync, saveDatabase } = require('../db/database');
 const { bookAppointmentRules, rescheduleRules, cancelRules, validate } = require('../middleware/validation');
 const { generateConfirmationNumber, simulateEmailConfirmation, simulateSmsConfirmation } = require('../utils/helpers');
 
+// ─── SECURITY: Sanitize text input to prevent stored XSS ────────────────────
+function sanitizeText(str) {
+    if (!str || typeof str !== 'string') return str;
+    return str.replace(/[<>"'&]/g, (char) => {
+        const map = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' };
+        return map[char];
+    }).trim();
+}
+
 // Helper to get one object from a prepared statement
 function getOne(db, query, params) {
     const stmt = db.prepare(query);
@@ -83,10 +92,10 @@ router.post('/', bookAppointmentRules, validate, (req, res) => {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')
       `, [
                 confirmation_number, provider_id, appointment_type_id,
-                patient_first_name, patient_last_name, patient_email, patient_phone, patient_dob || null,
+                sanitizeText(patient_first_name), sanitizeText(patient_last_name), patient_email, patient_phone, patient_dob || null,
                 appointment_date, appointment_time,
-                interpreter_needed ? 1 : 0, interpreter_language || null,
-                reason_for_visit || null, notification_preference || 'email'
+                interpreter_needed ? 1 : 0, sanitizeText(interpreter_language) || null,
+                sanitizeText(reason_for_visit) || null, notification_preference || 'email'
             ]);
 
             db.run('COMMIT');
@@ -222,7 +231,7 @@ router.get('/:id', (req, res) => {
 router.patch('/:id/cancel', cancelRules, validate, (req, res) => {
     try {
         const db = getDbSync();
-        const { cancel_reason } = req.body;
+        const cancel_reason = sanitizeText(req.body.cancel_reason);
 
         const appointment = getOne(db, 'SELECT * FROM appointments WHERE id = ?', [parseInt(req.params.id)]);
         if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
