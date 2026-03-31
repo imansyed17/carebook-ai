@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useAssistant } from '../context/AssistantContext'
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false)
     const location = useLocation()
+    const { togglePanel, isPanelOpen } = useAssistant()
 
     const links = [
         { to: '/', label: 'Home', id: 'nav-home' },
@@ -42,8 +44,8 @@ export default function Navbar() {
                                 to={link.to}
                                 id={link.id}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive(link.to)
-                                        ? 'bg-primary-50 text-primary-700 shadow-sm'
-                                        : 'text-surface-600 hover:text-primary-700 hover:bg-surface-100'
+                                    ? 'bg-primary-50 text-primary-700 shadow-sm'
+                                    : 'text-surface-600 hover:text-primary-700 hover:bg-surface-100'
                                     }`}
                             >
                                 {link.label}
@@ -52,16 +54,31 @@ export default function Navbar() {
                     </div>
 
                     {/* CTA Button Desktop */}
-                    <Link
-                        to="/providers"
-                        id="nav-book-now"
-                        className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white text-sm font-semibold shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-                    >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                        </svg>
-                        Book Now
-                    </Link>
+                    <div className="hidden md:flex items-center gap-2">
+                        <button
+                            onClick={togglePanel}
+                            id="nav-ai-assistant"
+                            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isPanelOpen
+                                ? 'bg-primary-100 text-primary-700 shadow-sm'
+                                : 'bg-surface-100 text-surface-600 hover:bg-primary-50 hover:text-primary-700'
+                                }`}
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+                            </svg>
+                            AI Assistant
+                        </button>
+                        <Link
+                            to="/providers"
+                            id="nav-book-now"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white text-sm font-semibold shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                            </svg>
+                            Book Now
+                        </Link>
+                    </div>
 
                     {/* Mobile Menu Button */}
                     <button
@@ -93,8 +110,8 @@ export default function Navbar() {
                                     id={`${link.id}-mobile`}
                                     onClick={() => setIsOpen(false)}
                                     className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive(link.to)
-                                            ? 'bg-primary-50 text-primary-700'
-                                            : 'text-surface-600 hover:bg-surface-100'
+                                        ? 'bg-primary-50 text-primary-700'
+                                        : 'text-surface-600 hover:bg-surface-100'
                                         }`}
                                 >
                                     {link.label}
