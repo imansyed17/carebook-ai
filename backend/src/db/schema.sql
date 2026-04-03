@@ -83,3 +83,23 @@ CREATE INDEX IF NOT EXISTS idx_appointments_confirmation ON appointments(confirm
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
 CREATE INDEX IF NOT EXISTS idx_time_slots_provider ON time_slots(provider_id, slot_date);
 CREATE INDEX IF NOT EXISTS idx_providers_specialty ON providers(specialty);
+
+-- Members table
+CREATE TABLE IF NOT EXISTS members (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  phone TEXT,
+  member_id TEXT NOT NULL,
+  group_number TEXT,
+  plan_name TEXT,
+  plan_network TEXT,
+  communication_preference TEXT DEFAULT 'email',
+  requires_interpreter INTEGER DEFAULT 0,
+  interpreter_language TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_members_email ON members(email);

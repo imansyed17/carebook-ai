@@ -106,11 +106,13 @@ async function startServer() {
         const appointmentsRouter = require('./src/routes/appointments');
         const aiRouter = require('./src/routes/ai');
         const appointmentTypesRouter = require('./src/routes/appointmentTypes');
+        const authRouter = require('./src/routes/auth');
 
         app.use('/api/providers', providersRouter);
         app.use('/api/appointments', bookingLimiter, appointmentsRouter);
         app.use('/api/ai', aiLimiter, aiRouter);
         app.use('/api/appointment-types', appointmentTypesRouter);
+        app.use('/api/auth', authRouter);
 
         // 404 handler (after all routes)
         app.use((req, res) => {

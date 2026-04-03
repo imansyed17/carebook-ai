@@ -8,6 +8,16 @@ async function handleResponse(response) {
     return data;
 }
 
+// Auth endpoints
+export async function loginMember(email, password) {
+    const response = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    });
+    return handleResponse(response);
+}
+
 // Provider endpoints
 export async function getProviders(params = {}) {
     const searchParams = new URLSearchParams();

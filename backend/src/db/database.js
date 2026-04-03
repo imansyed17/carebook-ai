@@ -216,8 +216,40 @@ function seedDatabase(database) {
     }
     insertSlot.free();
 
+    // Generate mock members
+    const members = [
+        {
+            first_name: 'Sarah', last_name: 'Jenkins', email: 'sarah.jenkins@example.com', password: 'password123',
+            phone: '555-0102', member_id: 'CB-982374-1', group_number: 'GRP-1029',
+            plan_name: 'BlueCare Gold PPO', plan_network: 'PPO', communication_preference: 'text',
+            requires_interpreter: 0, interpreter_language: null
+        },
+        {
+            first_name: 'Michael', last_name: 'Rodriguez', email: 'm.rodriguez@example.com', password: 'password123',
+            phone: '555-8821', member_id: 'CB-445521-2', group_number: 'GRP-5561',
+            plan_name: 'Aetna Value HMO', plan_network: 'HMO', communication_preference: 'email',
+            requires_interpreter: 1, interpreter_language: 'Spanish'
+        },
+        {
+            first_name: 'James', last_name: 'Smith', email: 'jsmith.demo@example.com', password: 'password123',
+            phone: '555-0099', member_id: 'CB-112233-0', group_number: 'GRP-900',
+            plan_name: 'Medicare Advantage Plus', plan_network: 'Medicare', communication_preference: 'both',
+            requires_interpreter: 0, interpreter_language: null
+        }
+    ];
+
+    const insertMember = database.prepare(`
+        INSERT OR IGNORE INTO members (first_name, last_name, email, password, phone, member_id, group_number, plan_name, plan_network, communication_preference, requires_interpreter, interpreter_language)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const m of members) {
+        insertMember.run([m.first_name, m.last_name, m.email, m.password, m.phone, m.member_id, m.group_number, m.plan_name, m.plan_network, m.communication_preference, m.requires_interpreter, m.interpreter_language]);
+    }
+    insertMember.free();
+
     console.log('✅ Database seeded successfully!');
     console.log(`   - ${providers.length} providers`);
+    console.log(`   - ${members.length} members`);
     console.log(`   - ${appointmentTypes.length} appointment types`);
     console.log('   - Time slots generated for next 90 days');
 }
