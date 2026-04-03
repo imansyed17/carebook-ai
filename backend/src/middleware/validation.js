@@ -121,7 +121,24 @@ const searchRules = [
         .optional()
         .trim()
         .isLength({ max: 200 })
-        .withMessage('Search query must be max 200 characters')
+        .withMessage('Search query must be max 200 characters'),
+    query('specialty')
+        .optional()
+        .trim()
+        .isLength({ max: 100 })
+        .withMessage('Specialty must be max 100 characters'),
+    query('network')
+        .optional()
+        .trim()
+        .isLength({ max: 100 })
+        .withMessage('Network must be max 100 characters')
+        .matches(/^[a-zA-Z0-9\s-]+$/)
+        .withMessage('Network can only contain letters, numbers, spaces, and hyphens'),
+    query('zip_code')
+        .optional()
+        .trim()
+        .matches(/^\d{5}$/)
+        .withMessage('ZIP code must be a valid 5-digit number')
 ];
 
 module.exports = {

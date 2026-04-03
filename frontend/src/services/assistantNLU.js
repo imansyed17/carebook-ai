@@ -169,7 +169,7 @@ export function extractConstraints(input) {
 /**
  * Determine which fields are still needed for a given workflow
  */
-export function getMissingFields(intent, constraints) {
+export function getMissingFields(intent, constraints, member = null) {
   const missing = []
 
   if (intent === 'book' || intent === 'search') {
@@ -182,7 +182,7 @@ export function getMissingFields(intent, constraints) {
   }
 
   if (intent === 'reschedule' || intent === 'cancel' || intent === 'status') {
-    if (!constraints.email && !constraints.confirmationNumber) {
+    if (!constraints.email && !constraints.confirmationNumber && !member) {
       missing.push('identification')
     }
   }

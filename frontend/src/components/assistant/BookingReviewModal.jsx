@@ -1,25 +1,27 @@
 import { useState, useEffect } from 'react'
 import { useAssistant } from '../../context/AssistantContext'
+import { useAuth } from '../../context/AuthContext'
 import { fetchAppointmentTypes } from '../../services/assistantService'
 import { formatFullDate, formatTime } from '../../services/assistantService'
 
 export default function BookingReviewModal({ content }) {
     const { confirmBooking, isLoading } = useAssistant()
+    const { member } = useAuth()
     const { provider, date, time, formattedDate, formattedTime } = content
 
     const [patientInfo, setPatientInfo] = useState({
-        patient_first_name: '',
-        patient_last_name: '',
-        patient_email: '',
-        patient_phone: '',
+        patient_first_name: member?.firstName || '',
+        patient_last_name: member?.lastName || '',
+        patient_email: member?.email || '',
+        patient_phone: member?.phone || '(555) 000-0000',
         appointment_type_id: '',
         reason_for_visit: '',
-        interpreter_needed: false,
-        interpreter_language: '',
-        notification_preference: 'email',
+        interpreter_needed: member?.requiresInterpreter || false,
+        interpreter_language: member?.interpreterLanguage || '',
+        notification_preference: member?.communicationPreference || 'email',
     })
     const [appointmentTypes, setAppointmentTypes] = useState([])
-    const [step, setStep] = useState('form') // 'form' | 'review'
+    const [step, setStep] = useState(member ? 'review' : 'form') // 'form' | 'review'
     const [errors, setErrors] = useState({})
 
     useEffect(() => {

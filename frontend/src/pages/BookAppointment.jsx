@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { getProvider, getProviderSlots, getAppointmentTypes, bookAppointment } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 import ConfirmationModal from '../components/ConfirmationModal'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorMessage from '../components/ErrorMessage'
@@ -8,6 +9,7 @@ import ErrorMessage from '../components/ErrorMessage'
 export default function BookAppointment() {
     const { providerId } = useParams()
     const navigate = useNavigate()
+    const { member } = useAuth()
 
     const [provider, setProvider] = useState(null)
     const [slots, setSlots] = useState({})
@@ -27,16 +29,16 @@ export default function BookAppointment() {
 
     // Form state
     const [formData, setFormData] = useState({
-        patient_first_name: '',
-        patient_last_name: '',
-        patient_email: '',
-        patient_phone: '',
+        patient_first_name: member?.firstName || '',
+        patient_last_name: member?.lastName || '',
+        patient_email: member?.email || '',
+        patient_phone: member?.phone || '(555) 123-4567',
         patient_dob: '',
         appointment_type_id: '',
-        interpreter_needed: false,
-        interpreter_language: '',
+        interpreter_needed: member?.requiresInterpreter || false,
+        interpreter_language: member?.interpreterLanguage || '',
         reason_for_visit: '',
-        notification_preference: 'email'
+        notification_preference: member?.communicationPreference || 'email'
     })
 
     useEffect(() => {
@@ -217,7 +219,7 @@ export default function BookAppointment() {
             </nav>
 
             {/* Provider Info Banner */}
-            <div className="bg-white rounded-2xl shadow-card border border-surface-100 p-6 mb-8" id="provider-info-banner">
+            <div className="bg-white rounded-2xl shadow-card border border-surface-100 p-6 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between mb-8" id="provider-info-banner">
                 <div className="flex items-center gap-5">
                     <div className="w-20 h-20 rounded-2xl overflow-hidden bg-primary-100 flex items-center justify-center shadow-sm flex-shrink-0">
                         {provider.avatar_url ? (
@@ -230,15 +232,47 @@ export default function BookAppointment() {
                         <h1 className="text-2xl font-display font-bold text-surface-900">
                             Dr. {provider.first_name} {provider.last_name}, {provider.title}
                         </h1>
-                        <p className="text-primary-600 font-medium">{provider.specialty}</p>
+                        <p className="text-primary-600 font-bold mb-1">{provider.specialty}</p>
+
+                        {provider.credentials && (
+                            <div className="flex items-center gap-2 text-surface-600 text-xs mb-2">
+                                <span className="bg-surface-100 px-2 py-0.5 rounded-full border border-surface-200">Board Certified</span>
+                                <span>{provider.credentials}</span>
+                            </div>
+                        )}
+
                         <div className="flex items-center gap-1.5 mt-1 text-surface-500 text-sm">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg className="w-4 h-4 text-surface-400 font-bold flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                             </svg>
-                            {provider.location} · {provider.address}
+                            {provider.location} · {provider.address}{provider.zip_code ? `, ${provider.zip_code}` : ''}
                         </div>
+
+                        {provider.accepted_networks && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {JSON.parse(provider.accepted_networks).map(network => (
+                                    <span key={network} className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${member && member.planNetwork === network ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-surface-100 text-surface-600 border border-surface-200'}`}>
+                                        {network} {member && member.planNetwork === network && '✓ (In-Network)'}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
+                </div>
+
+                <div className="md:ml-auto w-full md:w-auto text-right">
+                    <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(provider.address + ' ' + (provider.zip_code || ''))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary w-full md:w-auto justify-center flex items-center gap-2"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+                        </svg>
+                        Get Directions
+                    </a>
                 </div>
             </div>
 

@@ -1,19 +1,30 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAssistant } from '../context/AssistantContext'
+import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false)
     const location = useLocation()
+    const navigate = useNavigate()
     const { togglePanel, isPanelOpen } = useAssistant()
+    const { member, logout } = useAuth()
 
     const links = [
         { to: '/', label: 'Home', id: 'nav-home' },
-        { to: '/providers', label: 'Find Providers', id: 'nav-providers' },
-        { to: '/appointments', label: 'My Appointments', id: 'nav-appointments' },
+        { to: '/providers', label: 'Find Providers', id: 'nav-providers' }
     ]
+    
+    if (member) {
+        links.push({ to: '/appointments', label: 'My Appointments', id: 'nav-appointments' })
+    }
 
     const isActive = (path) => location.pathname === path
+    
+    const handleLogout = () => {
+        logout()
+        navigate('/')
+    }
 
     return (
         <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-surface-200/50 shadow-sm">
@@ -55,6 +66,22 @@ export default function Navbar() {
 
                     {/* CTA Button Desktop */}
                     <div className="hidden md:flex items-center gap-2">
+                        {member ? (
+                            <div className="flex items-center gap-3 mr-2">
+                                <div className="text-right">
+                                    <p className="text-xs font-bold text-surface-800">{member.firstName} {member.lastName}</p>
+                                    <p className="text-[10px] text-surface-500">{member.planName}</p>
+                                </div>
+                                <button onClick={handleLogout} className="text-xs font-semibold text-primary-600 hover:text-primary-800 transition-colors">
+                                    Logout
+                                </button>
+                                <div className="h-6 w-px bg-surface-200 mx-1"></div>
+                            </div>
+                        ) : (
+                            <Link to="/login" className="text-sm font-semibold text-surface-600 hover:text-primary-700 transition-colors mr-2">
+                                Member Login
+                            </Link>
+                        )}
                         <button
                             onClick={togglePanel}
                             id="nav-ai-assistant"
@@ -68,16 +95,6 @@ export default function Navbar() {
                             </svg>
                             AI Assistant
                         </button>
-                        <Link
-                            to="/providers"
-                            id="nav-book-now"
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white text-sm font-semibold shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                            </svg>
-                            Book Now
-                        </Link>
                     </div>
 
                     {/* Mobile Menu Button */}
@@ -101,7 +118,13 @@ export default function Navbar() {
 
                 {/* Mobile Menu */}
                 {isOpen && (
-                    <div className="md:hidden pb-4 animate-slide-up">
+                    <div className="md:hidden pb-4 animate-slide-up border-t border-surface-100 mt-2 pt-2">
+                        {member && (
+                            <div className="px-4 py-3 mb-2 bg-surface-50 rounded-lg">
+                                <p className="text-sm font-bold text-surface-800">{member.firstName} {member.lastName}</p>
+                                <p className="text-xs text-surface-500">{member.planName}</p>
+                            </div>
+                        )}
                         <div className="flex flex-col gap-1">
                             {links.map((link) => (
                                 <Link
@@ -117,6 +140,22 @@ export default function Navbar() {
                                     {link.label}
                                 </Link>
                             ))}
+                            {member ? (
+                                <button
+                                    onClick={() => { setIsOpen(false); handleLogout(); }}
+                                    className="text-left px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                    Logout
+                                </button>
+                            ) : (
+                                <Link
+                                    to="/login"
+                                    onClick={() => setIsOpen(false)}
+                                    className="px-4 py-3 rounded-lg text-sm font-medium text-surface-600 hover:bg-surface-100 transition-colors"
+                                >
+                                    Member Login
+                                </Link>
+                            )}
                             <Link
                                 to="/providers"
                                 onClick={() => setIsOpen(false)}

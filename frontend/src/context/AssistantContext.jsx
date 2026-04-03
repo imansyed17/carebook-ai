@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useCallback, useEffect } from 'react'
 import { detectIntent, extractConstraints, getMissingFields, getClarificationQuestion } from '../services/assistantNLU'
 import * as assistantService from '../services/assistantService'
+import { useAuth } from './AuthContext'
 
 const AssistantContext = createContext(null)
 
@@ -104,6 +105,7 @@ function assistantReducer(state, action) {
 // ─── Provider ───────────────────────────────────────────────────────────────────
 
 export function AssistantProvider({ children }) {
+    const { member } = useAuth()
     const [state, dispatch] = useReducer(assistantReducer, undefined, initAssistantState)
 
     // Persist state changes
@@ -125,13 +127,18 @@ export function AssistantProvider({ children }) {
         try {
             // If we're in clarification mode, treat the response as filling a constraint
             if (state.missingFields.length > 0 && state.currentIntent) {
-                await handleClarificationResponse(text, state, dispatch, addMessage)
+                await handleClarificationResponse(text, state, dispatch, addMessage, member)
                 return
             }
 
             // Detect intent
             const intent = detectIntent(text)
             const constraints = extractConstraints(text)
+            
+            // Auto-inject member email for lookup intents
+            if (member && !constraints.email) {
+                constraints.email = member.email
+            }
 
             if (!intent) {
                 addMessage('assistant', 'text', "I'm not sure I understood that. I can help you:\n• **Find providers** — \"Find a dermatologist\"\n• **Book appointments** — \"Book a PCP appointment this week\"\n• **Reschedule** — \"Reschedule my appointment\"\n• **Cancel** — \"Cancel my upcoming appointment\"\n• **Check status** — \"Show my appointments\"\n\nWhat would you like to do?")
@@ -142,7 +149,7 @@ export function AssistantProvider({ children }) {
             dispatch({ type: 'SET_CONSTRAINTS', payload: constraints })
 
             // Check for missing required fields
-            const missing = getMissingFields(intent, constraints)
+            const missing = getMissingFields(intent, constraints, member)
 
             if (missing.length > 0) {
                 dispatch({ type: 'SET_MISSING_FIELDS', payload: missing })
@@ -152,7 +159,7 @@ export function AssistantProvider({ children }) {
             }
 
             // Execute the workflow
-            await executeWorkflow(intent, constraints, dispatch, addMessage)
+            await executeWorkflow(intent, constraints, dispatch, addMessage, member)
 
         } catch (err) {
             console.error('Assistant error:', err)
@@ -160,7 +167,7 @@ export function AssistantProvider({ children }) {
         } finally {
             dispatch({ type: 'SET_LOADING', payload: false })
         }
-    }, [state.missingFields, state.currentIntent, addMessage])
+    }, [state.missingFields, state.currentIntent, addMessage, member])
 
     // ── Select a provider recommendation ──────────────────────────────────────
 
@@ -293,12 +300,17 @@ export function useAssistant() {
 
 // ─── Internal Helpers ───────────────────────────────────────────────────────────
 
-async function handleClarificationResponse(text, state, dispatch, addMessage) {
+async function handleClarificationResponse(text, state, dispatch, addMessage, member) {
     const newConstraints = extractConstraints(text)
     const currentField = state.missingFields[0]
 
     // Merge constraints (the NLU picks up the new info from the clarification response)
     const updatedConstraints = { ...state.extractedConstraints, ...newConstraints }
+    
+    // Auto-inject email for identification if member is present
+    if (member && !updatedConstraints.email) {
+        updatedConstraints.email = member.email;
+    }
 
     // If the NLU didn't extract the specific field, try to use the raw text
     if (currentField === 'specialty' && !newConstraints.specialty) {
@@ -317,7 +329,7 @@ async function handleClarificationResponse(text, state, dispatch, addMessage) {
     dispatch({ type: 'SET_CONSTRAINTS', payload: updatedConstraints })
 
     // Check remaining missing fields
-    const remaining = getMissingFields(state.currentIntent, updatedConstraints)
+    const remaining = getMissingFields(state.currentIntent, updatedConstraints, member)
     const newRemaining = remaining.filter(f => f !== currentField || !updatedConstraints[currentField === 'identification' ? 'email' : currentField])
 
     if (newRemaining.length > 0) {
@@ -326,11 +338,11 @@ async function handleClarificationResponse(text, state, dispatch, addMessage) {
         addMessage('assistant', 'clarification', { field: newRemaining[0], question })
     } else {
         dispatch({ type: 'SET_MISSING_FIELDS', payload: [] })
-        await executeWorkflow(state.currentIntent, updatedConstraints, dispatch, addMessage)
+        await executeWorkflow(state.currentIntent, updatedConstraints, dispatch, addMessage, member)
     }
 }
 
-async function executeWorkflow(intent, constraints, dispatch, addMessage) {
+async function executeWorkflow(intent, constraints, dispatch, addMessage, member) {
     dispatch({ type: 'SET_WORKFLOW_STATUS', payload: 'collecting_info' })
 
     switch (intent) {
@@ -340,7 +352,7 @@ async function executeWorkflow(intent, constraints, dispatch, addMessage) {
             dispatch({ type: 'SET_LOADING', payload: true })
 
             try {
-                const { providers, recommendations } = await assistantService.getRecommendations(constraints)
+                const { providers, recommendations } = await assistantService.getRecommendations(constraints, member)
 
                 if (recommendations.length === 0) {
                     if (providers.length === 0) {

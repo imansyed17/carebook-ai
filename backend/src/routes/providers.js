@@ -18,7 +18,7 @@ function toObjects(result) {
 router.get('/', searchRules, validate, (req, res) => {
     try {
         const db = getDbSync();
-        const { q, specialty } = req.query;
+        const { q, specialty, network, zip_code } = req.query;
 
         let query = `
       SELECT p.*, 
@@ -47,6 +47,11 @@ router.get('/', searchRules, validate, (req, res) => {
             params.push(specialty);
         }
 
+        if (network) {
+            conditions.push('p.accepted_networks LIKE ?');
+            params.push(`%${network}%`);
+        }
+
         if (conditions.length > 0) {
             query += ' WHERE ' + conditions.join(' AND ');
         }
@@ -68,11 +73,27 @@ router.get('/', searchRules, validate, (req, res) => {
             providers = toObjects(result);
         }
 
-        const formatted = providers.map(p => ({
-            ...p,
-            accepting_new_patients: Boolean(p.accepting_new_patients),
-            appointment_types: p.appointment_types ? p.appointment_types.split(',') : []
-        }));
+        const formatted = providers.map(p => {
+            // Mock a realistic distance calculation based on ZIP code match
+            let distance = (Math.random() * 15 + 1).toFixed(1);
+            if (zip_code && p.zip_code === zip_code) {
+                distance = (Math.random() * 3 + 0.5).toFixed(1); // 0.5 - 3.5 miles if same ZIP
+            }
+
+            return {
+                ...p,
+                distance: parseFloat(distance),
+                accepting_new_patients: Boolean(p.accepting_new_patients),
+                online_booking_enabled: Boolean(p.online_booking_enabled),
+                appointment_types: p.appointment_types ? p.appointment_types.split(',') : [],
+                accepted_networks: p.accepted_networks ? p.accepted_networks.split(',') : []
+            };
+        });
+
+        // Optionally sort by distance if a zip code was provided
+        if (zip_code) {
+            formatted.sort((a, b) => a.distance - b.distance);
+        }
 
         res.json({ providers: formatted, total: formatted.length });
     } catch (error) {

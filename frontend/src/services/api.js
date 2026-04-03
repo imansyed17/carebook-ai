@@ -13,6 +13,8 @@ export async function getProviders(params = {}) {
     const searchParams = new URLSearchParams();
     if (params.q) searchParams.set('q', params.q);
     if (params.specialty) searchParams.set('specialty', params.specialty);
+    if (params.network) searchParams.set('network', params.network);
+    if (params.zip_code) searchParams.set('zip_code', params.zip_code);
 
     const queryString = searchParams.toString();
     const url = `${API_BASE}/providers${queryString ? `?${queryString}` : ''}`;

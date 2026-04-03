@@ -14,10 +14,16 @@ import { resolveDateRange } from './assistantNLU'
 
 // ─── Provider Search ────────────────────────────────────────────────────────────
 
-export async function searchProviders(constraints) {
+export async function searchProviders(constraints, member = null) {
     const params = {}
     if (constraints.specialty) params.specialty = constraints.specialty
     if (constraints.providerName) params.q = constraints.providerName
+    
+    // Inject member network & location context if available
+    if (member) {
+        if (member.planNetwork) params.network = member.planNetwork
+        if (member.zip) params.zip_code = member.zip
+    }
 
     const data = await getProviders(params)
     const providers = data.providers || []
@@ -28,6 +34,18 @@ export async function searchProviders(constraints) {
         if (constraints.specialty && provider.specialty === constraints.specialty) {
             reasons.push(`Specializes in ${constraints.specialty}`)
         }
+        
+        // Emphasize in-network status
+        if (member && provider.accepted_networks && provider.accepted_networks.includes(member.planNetwork)) {
+            reasons.unshift(`In-network for ${member.planName}`)
+        } else if (member) {
+            reasons.push('Out of network')
+        }
+
+        if (member && provider.distance) {
+            reasons.push(`${provider.distance} miles from your home`)
+        }
+
         if (provider.accepting_new_patients) {
             reasons.push('Accepting new patients')
         }
@@ -38,7 +56,17 @@ export async function searchProviders(constraints) {
     })
 
     // Sort: best match first
-    scored.sort((a, b) => b.recommendationReasons.length - a.recommendationReasons.length || b.rating - a.rating)
+    scored.sort((a, b) => {
+        // Prioritize in-network matches first
+        if (member) {
+            const aInNetwork = a.accepted_networks?.includes(member.planNetwork) ? 1 : 0
+            const bInNetwork = b.accepted_networks?.includes(member.planNetwork) ? 1 : 0
+            if (aInNetwork !== bInNetwork) return bInNetwork - aInNetwork
+            // Then distance
+            if (a.distance && b.distance) return a.distance - b.distance
+        }
+        return b.recommendationReasons.length - a.recommendationReasons.length || b.rating - a.rating
+    })
 
     return scored.slice(0, 5)
 }
@@ -82,8 +110,8 @@ function matchesTimeOfDay(timeStr, preference) {
 
 // ─── Build Recommendation Cards ─────────────────────────────────────────────────
 
-export async function getRecommendations(constraints) {
-    const providers = await searchProviders(constraints)
+export async function getRecommendations(constraints, member = null) {
+    const providers = await searchProviders(constraints, member)
     if (providers.length === 0) {
         return { providers: [], recommendations: [] }
     }
